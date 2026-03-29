@@ -391,46 +391,61 @@ def page_models_eval():
             
         with st.spinner("Compiling and training models in parallel..."):
             time.sleep(1.2) # Simulate parallel compute UI
-            results = []
-            trained_models_dict = {}
-            for name in selected_models:
-                model = models[name]
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
-                y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
-                
-                acc = accuracy_score(y_test, y_pred)
-                prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-                rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-                f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-                cm = confusion_matrix(y_test, y_pred)
-                
-                results.append({
-                    "Model": name,
-                    "Accuracy": acc,
-                    "Precision": prec,
-                    "Recall": rec,
-                    "F1 Score": f1
-                })
-                
-                trained_models_dict[name] = {
-                    'model': model,
-                    'y_pred': y_pred,
-                    'y_proba': y_proba,
-                    'cm': cm
-                }
             
-            # Save results in session state
-            results_df = pd.DataFrame(results).sort_values(by="Accuracy", ascending=False)
-            st.session_state['model_results_df'] = results_df
-            st.session_state['trained_models'] = trained_models_dict
+            # --- Type Safety Check ---
+            non_numeric_cols = X_train.select_dtypes(exclude=[np.number]).columns.tolist()
+            if non_numeric_cols:
+                st.error(f"❌ Training Failed: The dataset contains non-numeric features ({', '.join(non_numeric_cols)}). Please return to the 'ETL Pipeline Config' (Step 2) to encode or drop categorical variables.", icon="🛑")
+                return
             
-            # Find the best model
-            best_model_name = results_df.iloc[0]["Model"]
-            st.session_state['best_model_name'] = best_model_name
-            st.session_state['best_model'] = trained_models_dict[best_model_name]['model']
+            try:
+                results = []
+                trained_models_dict = {}
+                for name in selected_models:
+                    model = models[name]
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_test)
+                    y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
+                    
+                    acc = accuracy_score(y_test, y_pred)
+                    prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+                    rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+                    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+                    cm = confusion_matrix(y_test, y_pred)
+                    
+                    results.append({
+                        "Model": name,
+                        "Accuracy": acc,
+                        "Precision": prec,
+                        "Recall": rec,
+                        "F1 Score": f1
+                    })
+                    
+                    trained_models_dict[name] = {
+                        'model': model,
+                        'y_pred': y_pred,
+                        'y_proba': y_proba,
+                        'cm': cm
+                    }
+                
+                # Save results in session state
+                results_df = pd.DataFrame(results).sort_values(by="Accuracy", ascending=False)
+                st.session_state['model_results_df'] = results_df
+                st.session_state['trained_models'] = trained_models_dict
+                
+                # Find the best model
+                best_model_name = results_df.iloc[0]["Model"]
+                st.session_state['best_model_name'] = best_model_name
+                st.session_state['best_model'] = trained_models_dict[best_model_name]['model']
+                
+                st.success("✅ Sequence Complete: Models compiled and evaluated.")
             
-        st.success("✅ Sequence Complete: Models compiled and evaluated.")
+            except ValueError as ve:
+                st.error(f"🛑 Data Integrity Error during training: {ve}. Ensure that the dataset contains no missing values, string structures, or unsupported categories by visiting the ETL Pipeline Config.")
+                return
+            except Exception as e:
+                st.error(f"🛑 Unexpected Error during training: {e}")
+                return
             
     # Display results if available
     if 'model_results_df' in st.session_state:
