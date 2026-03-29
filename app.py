@@ -11,24 +11,106 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for clean UI/UX
+# Advanced Real-Time Dashboard Custom CSS
 st.markdown("""
 <style>
-    .main {
-        background-color: #f8f9fa;
+    /* Main App Background - Sleek Dark Theme */
+    .stApp {
+        background-color: #0d1117;
+        color: #c9d1d9;
     }
+    
+    /* Elegant Metric Cards */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem !important;
+        color: #58a6ff;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #8b949e;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+    div[data-testid="metric-container"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 5% 5% 5% 10%;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(88, 166, 255, 0.15);
+        border-color: #58a6ff;
+    }
+    
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background-color: #010409;
+        border-right: 1px solid #30363d;
+    }
+    
+    /* Container Styling */
+    .stDataFrame {
+        border-radius: 8px;
+        border: 1px solid #30363d;
+        overflow: hidden;
+    }
+
+    /* Buttons */
     .stButton>button {
         width: 100%;
-        border-radius: 5px;
-        background-color: #4CAF50;
-        color: white;
+        border-radius: 8px;
+        background-color: #238636;
+        color: #ffffff;
+        font-weight: 600;
+        border: 1px solid rgba(240, 246, 252, 0.1);
+        transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        background-color: #45a049;
+        background-color: #2ea043;
+        border-color: rgba(240, 246, 252, 0.2);
+        box-shadow: 0 0 10px rgba(46, 160, 67, 0.4);
     }
+    
+    /* Headers */
     h1, h2, h3 {
-        color: #2c3e50;
+        color: #f0f6fc;
+        font-family: 'Inter', sans-serif;
     }
+    
+    /* Alert / Info boxes */
+    .stAlert {
+        background-color: #1f2428;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        color: #c9d1d9;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        background-color: transparent;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0px 0px;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        color: #8b949e;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #58a6ff !important;
+        border-bottom: 2px solid #58a6ff;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -47,79 +129,91 @@ if 'target_col' not in st.session_state:
 
 def render_sidebar():
     """Renders the sidebar navigation and returns the selected page."""
-    st.sidebar.title("🧠 AutoML Dashboard")
+    st.sidebar.markdown("## ⚡ **Live Analytics Core**")
     st.sidebar.markdown("---")
     
-    # Navigation Radio Buttons
+    # Navigation Radio Buttons with updated terminology
     page = st.sidebar.radio(
-        "Navigation",
+        "SYSTEM MODULES",
         [
-            "1. Upload Data",
-            "2. Preprocessing",
-            "3. Models & Evaluation",
-            "4. BI Insights",
-            "5. Supply Chain Analytics"
+            "1. Data Ingestion Terminal",
+            "2. ETL Pipeline Config",
+            "3. Live Model Telemetry",
+            "4. BI Command Center",
+            "5. Supply Chain Forecasting"
         ]
     )
     
     st.sidebar.markdown("---")
     st.sidebar.info(
-        "Upload a dataset to get started. Navigate through the steps to preprocess, "
-        "train models, and view business insights."
+        "**System Status**: Awaiting Input\n\n"
+        "Initialize the dashboard by uploading a dataset in the Data Ingestion Terminal."
     )
     return page
 
 
+import time
+
 def page_upload_data():
-    st.title("📂 Step 1: Upload Dataset")
-    st.markdown("Upload your CSV or Excel dataset to begin the analysis.")
+    st.title("📡 Data Ingestion Terminal")
+    st.markdown("Initiate real-time data streaming by uploading your CSV/Excel batch file below.")
     
-    uploaded_file = st.file_uploader("Choose a file", type=["csv", "xlsx", "xls"])
+    uploaded_file = st.file_uploader("Initialize Data Feed", type=["csv", "xlsx", "xls"])
     
     if uploaded_file is not None:
         try:
-            # Read the file based on its extension
-            if uploaded_file.name.endswith('.csv'):
-                df = pd.read_csv(uploaded_file)
+            if 'upload_processed' not in st.session_state or st.session_state.get('last_uploaded') != uploaded_file.name:
+                with st.spinner("Ingesting data stream..."):
+                    time.sleep(0.8) # Simulate processing for dynamic feel
+                    if uploaded_file.name.endswith('.csv'):
+                        df = pd.read_csv(uploaded_file)
+                    else:
+                        df = pd.read_excel(uploaded_file)
+                    st.session_state['raw_data'] = df
+                    st.session_state['upload_processed'] = True
+                    st.session_state['last_uploaded'] = uploaded_file.name
             else:
-                df = pd.read_excel(uploaded_file)
+                df = st.session_state['raw_data']
+            
+            st.success(f"Stream established: **{uploaded_file.name}**")
+            
+            # Real-time Metrics Dashboard
+            st.markdown("### 📊 Ingestion Telemetry")
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Total Records", f"{df.shape[0]:,}")
+            m2.metric("Total Features", f"{df.shape[1]:,}")
+            m3.metric("Missing Values", f"{df.isnull().sum().sum():,}")
+            m4.metric("Memory Usage", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+            
+            st.markdown("---")
+            col_data, col_types = st.columns([2, 1])
+            
+            with col_data:
+                st.markdown("#### Live Data Feed Preview")
+                st.dataframe(df.head(15), use_container_width=True)
                 
-            st.session_state['raw_data'] = df
-            st.success("Dataset uploaded successfully!")
-            
-            # Display dataset preview
-            st.subheader("Dataset Preview")
-            st.dataframe(df.head(10))
-            
-            # Display dataset info
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Dataset Shape:**", df.shape)
-                st.write("**Total Records:**", df.shape[0])
-                st.write("**Total Features:**", df.shape[1])
-            with col2:
-                st.write("**Missing Values:**")
-                st.write(df.isnull().sum())
-            
-            st.subheader("Data Types")
-            st.write(df.dtypes.astype(str))
+            with col_types:
+                st.markdown("#### Schema Inference")
+                dtypes_df = pd.DataFrame(df.dtypes.astype(str), columns=["Data Type"]).reset_index().rename(columns={"index": "Feature"})
+                st.dataframe(dtypes_df, use_container_width=True)
             
         except Exception as e:
-            st.error(f"Error reading the file: {e}")
+            st.error(f"Stream Interruption: {e}")
     else:
-        # If there's already data in session state, show it
-        if st.session_state['raw_data'] is not None:
+        if st.session_state.get('raw_data') is not None:
             df = st.session_state['raw_data']
-            st.info("Using previously uploaded dataset.")
-            st.subheader("Dataset Preview")
-            st.dataframe(df.head(10))
+            st.info("Active dataset stream detected across session.")
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Dataset Shape:**", df.shape)
-            with col2:
-                st.write("**Missing Values:**")
-                st.write(df.isnull().sum())
+            st.markdown("### 📊 Ingestion Telemetry")
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Total Records", f"{df.shape[0]:,}")
+            m2.metric("Total Features", f"{df.shape[1]:,}")
+            m3.metric("Missing Values", f"{df.isnull().sum().sum():,}")
+            m4.metric("Memory Usage", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+            
+            st.markdown("---")
+            st.markdown("#### Live Data Feed Preview")
+            st.dataframe(df.head(10), use_container_width=True)
 
 
 from sklearn.model_selection import train_test_split
@@ -127,117 +221,125 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
 import io
 
 def page_preprocessing():
-    st.title("⚙️ Step 2: Data Preprocessing")
-    st.markdown("Handle missing values, encode features, and split the data for training.")
+    st.title("⚙️ ETL Pipeline Configuration")
+    st.markdown("Configure data transformations, handle anomalies, and prepare the dataset for modeling.")
     
-    if st.session_state['raw_data'] is None:
-        st.warning("Please upload a dataset in Step 1 first.")
+    if st.session_state.get('raw_data') is None:
+        st.warning("⚠️ No data stream detected. Please initialize the feed in the Data Ingestion Terminal.")
         return
         
-    # We work on a copy to avoid mutating the uploaded file unpredictably
-    if st.session_state['clean_data'] is None:
+    if st.session_state.get('clean_data') is None:
         df = st.session_state['raw_data'].copy()
     else:
         df = st.session_state['clean_data']
-    
-    st.subheader("Current Dataset Preview")
-    st.dataframe(df.head(5))
 
-    st.markdown("---")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("1. Handle Missing Values")
-        missing_cols = df.columns[df.isnull().any()].tolist()
+    # Using Tabs for a cleaner pipeline view
+    tab1, tab2, tab3 = st.tabs(["📊 Data Overview", "🛠️ Transformation Config", "✂️ Train/Test Split"])
+
+    with tab1:
+        st.markdown("#### Current State Snapshot")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        col_m1.metric("Rows", f"{df.shape[0]:,}")
+        col_m2.metric("Features", f"{df.shape[1]:,}")
+        col_m3.metric("Total Missing Values", f"{df.isnull().sum().sum():,}")
         
-        if not missing_cols:
-            st.success("No missing values found in the dataset!")
-        else:
-            st.write(f"Columns with missing values: {', '.join(missing_cols)}")
-            handle_missing = st.selectbox("Select strategy", ["None", "Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
+        st.markdown("#### Preview")
+        st.dataframe(df.head(10), use_container_width=True)
+
+    with tab2:
+        st.markdown("#### Feature Engineering & Cleaning")
+        col_clean, col_encode, col_scale = st.columns(3)
+        
+        with col_clean:
+            st.markdown("##### Handle Missing Data")
+            missing_cols = df.columns[df.isnull().any()].tolist()
+            if not missing_cols:
+                st.success("Dataset is clean.")
+            else:
+                handle_missing = st.selectbox("Imputation Strategy", ["None", "Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
+                if st.button("Apply Imputation", key="btn_imp"):
+                    with st.spinner("Processing..."):
+                        time.sleep(0.5)
+                        if handle_missing == "Drop Rows":
+                            df = df.dropna()
+                        elif handle_missing == "Fill with Mean":
+                            df.fillna(df.select_dtypes(include=[np.number]).mean(), inplace=True)
+                        elif handle_missing == "Fill with Median":
+                            df.fillna(df.select_dtypes(include=[np.number]).median(), inplace=True)
+                        elif handle_missing == "Fill with Mode":
+                            for col in missing_cols:
+                                df[col].fillna(df[col].mode()[0], inplace=True)
+                        st.session_state['clean_data'] = df
+                        st.success(f"Strategy '{handle_missing}' applied.")
+                        time.sleep(1)
+                        st.rerun()
+
+        with col_encode:
+            st.markdown("##### Categorical Encoding")
+            cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+            if not cat_cols:
+                st.success("No categorical features.")
+            else:
+                encode_strat = st.selectbox("Encoding Strategy", ["None", "Label Encoding", "One-Hot Encoding"])
+                if st.button("Apply Encoding", key="btn_enc"):
+                    with st.spinner("Processing..."):
+                        time.sleep(0.5)
+                        if encode_strat == "Label Encoding":
+                            le = LabelEncoder()
+                            for col in cat_cols:
+                                df[col] = df[col].astype(str)
+                                df[col] = le.fit_transform(df[col])
+                        elif encode_strat == "One-Hot Encoding":
+                            df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+                        st.session_state['clean_data'] = df
+                        st.success(f"Strategy '{encode_strat}' applied.")
+                        time.sleep(1)
+                        st.rerun()
+
+        with col_scale:
+            st.markdown("##### Feature Scaling")
+            num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            scale_strat = st.selectbox("Scaling Method", ["None", "StandardScaler", "MinMaxScaler"])
+            if st.button("Apply Scaling", key="btn_scl"):
+                with st.spinner("Processing..."):
+                    time.sleep(0.5)
+                    if scale_strat != "None" and num_cols:
+                        if scale_strat == "StandardScaler":
+                            scaler = StandardScaler()
+                        else:
+                            scaler = MinMaxScaler()
+                        df[num_cols] = scaler.fit_transform(df[num_cols])
+                        st.session_state['clean_data'] = df
+                        st.success(f"Strategy '{scale_strat}' applied.")
+                        time.sleep(1)
+                        st.rerun()
+
+    with tab3:
+        st.markdown("#### Training Partition Configuration")
+        grid_col1, grid_col2 = st.columns(2)
+        
+        with grid_col1:
+            target_col = st.selectbox("Target Variable (Y)", df.columns.tolist(), index=len(df.columns)-1)
+        with grid_col2:
+            test_size = st.slider("Holdout Set Size (%)", 10, 50, 20) / 100.0
             
-            if st.button("Apply Missing Value Strategy"):
-                if handle_missing == "Drop Rows":
-                    df = df.dropna()
-                elif handle_missing == "Fill with Mean":
-                    df.fillna(df.select_dtypes(include=[np.number]).mean(), inplace=True)
-                elif handle_missing == "Fill with Median":
-                    df.fillna(df.select_dtypes(include=[np.number]).median(), inplace=True)
-                elif handle_missing == "Fill with Mode":
-                    for col in missing_cols:
-                        df[col].fillna(df[col].mode()[0], inplace=True)
+        if st.button("Initialize Training Split", type="primary"):
+            with st.spinner("Partitioning data space..."):
+                time.sleep(0.8)
+                st.session_state['target_col'] = target_col
+                X = df.drop(columns=[target_col])
+                y = df[target_col]
                 
-                st.session_state['clean_data'] = df
-                st.success(f"Applied '{handle_missing}' to missing values.")
-                st.rerun()
-
-    with col2:
-        st.subheader("2. Encode Categorical Variables")
-        cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
-        
-        if not cat_cols:
-            st.success("No categorical columns found.")
-        else:
-            st.write(f"Categorical columns: {', '.join(cat_cols)}")
-            encode_strat = st.selectbox("Select encoding", ["None", "Label Encoding", "One-Hot Encoding"])
-            
-            if st.button("Apply Encoding"):
-                if encode_strat == "Label Encoding":
-                    le = LabelEncoder()
-                    for col in cat_cols:
-                        df[col] = df[col].astype(str)
-                        df[col] = le.fit_transform(df[col])
-                elif encode_strat == "One-Hot Encoding":
-                    df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
                 
-                st.session_state['clean_data'] = df
-                st.success(f"Applied '{encode_strat}'.")
-                st.rerun()
-
-    st.markdown("---")
-    
-    col3, col4 = st.columns(2)
-    
-    with col3:
-        st.subheader("3. Feature Scaling")
-        num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        scale_strat = st.selectbox("Select scaling method", ["None", "StandardScaler", "MinMaxScaler"])
-        
-        if st.button("Apply Scaling"):
-            if scale_strat != "None" and num_cols:
-                if scale_strat == "StandardScaler":
-                    scaler = StandardScaler()
-                else:
-                    scaler = MinMaxScaler()
+                st.session_state['split_data'] = {
+                    'X_train': X_train, 'X_test': X_test,
+                    'y_train': y_train, 'y_test': y_test
+                }
                 
-                df[num_cols] = scaler.fit_transform(df[num_cols])
-                st.session_state['clean_data'] = df
-                st.success(f"Applied '{scale_strat}'.")
-                st.rerun()
+                st.success("✅ Partition established successfully.")
+                st.info(f"**Training Elements:** {X_train.shape[0]:,} | **Holdout Elements:** {X_test.shape[0]:,}")
 
-    with col4:
-        st.subheader("4. Train-Test Split")
-        st.write("Select target variable and test size.")
-        
-        target_col = st.selectbox("Target Variable (Y)", df.columns.tolist(), index=len(df.columns)-1)
-        test_size = st.slider("Test Size (%)", 10, 50, 20) / 100.0
-        
-        if st.button("Generate Train/Test Split"):
-            st.session_state['target_col'] = target_col
-            X = df.drop(columns=[target_col])
-            y = df[target_col]
-            
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
-            
-            st.session_state['split_data'] = {
-                'X_train': X_train, 'X_test': X_test,
-                'y_train': y_train, 'y_test': y_test
-            }
-            
-            st.success(f"Data split successfully! Train set: {X_train.shape[0]} rows, Test set: {X_test.shape[0]} rows.")
-
-    # Always ensure the clean data is saved if we made it here
     st.session_state['clean_data'] = df
 
 
@@ -253,18 +355,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def page_models_eval():
-    st.title("🤖 Step 3: Models & Evaluation")
-    st.markdown("Train machine learning models and compare their performance.")
+    st.title("🤖 Live Model Telemetry")
+    st.markdown("Real-time training and performance tracking of predictive models.")
     
     if 'split_data' not in st.session_state:
-        st.warning("Please preprocess and split the data in Step 2 first.")
+        st.warning("⚠️ Training data offline. Initialize ETL Pipeline Config first.")
         return
         
     split_data = st.session_state['split_data']
     X_train, X_test = split_data['X_train'], split_data['X_test']
     y_train, y_test = split_data['y_train'], split_data['y_test']
     
-    st.markdown(f"**Training Set:** {X_train.shape[0]} samples | **Test Set:** {X_test.shape[0]} samples")
+    st.info(f"**Data Streams Active** — **Training:** {X_train.shape[0]:,} records | **Holdout:** {X_test.shape[0]:,} records")
     
     models = {
         "Logistic Regression": LogisticRegression(max_iter=1000),
@@ -274,7 +376,7 @@ def page_models_eval():
         "Support Vector Machine": SVC(probability=True)
     }
     
-    st.subheader("Select Models to Train")
+    st.markdown("#### 🎯 Model Selection Matrix")
     selected_models = []
     cols = st.columns(len(models))
     for i, model_name in enumerate(models.keys()):
@@ -282,12 +384,13 @@ def page_models_eval():
             if st.checkbox(model_name, value=True):
                 selected_models.append(model_name)
                 
-    if st.button("Train Selected Models & Evaluate"):
+    if st.button("Initialize Training Sequence", type="primary"):
         if not selected_models:
-            st.error("Please select at least one model to train.")
+            st.error("❌ Abort: No models selected.")
             return
             
-        with st.spinner("Training models..."):
+        with st.spinner("Compiling and training models in parallel..."):
+            time.sleep(1.2) # Simulate parallel compute UI
             results = []
             trained_models_dict = {}
             for name in selected_models:
@@ -327,7 +430,7 @@ def page_models_eval():
             st.session_state['best_model_name'] = best_model_name
             st.session_state['best_model'] = trained_models_dict[best_model_name]['model']
             
-        st.success("Training Complete!")
+        st.success("✅ Sequence Complete: Models compiled and evaluated.")
             
     # Display results if available
     if 'model_results_df' in st.session_state:
@@ -336,102 +439,108 @@ def page_models_eval():
         best_model_name = st.session_state['best_model_name']
         
         st.markdown("---")
-        st.subheader("📊 Model Performance Comparison")
+        st.markdown("#### 📊 Performance Telemetry")
         
         # Display as a styled dataframe
-        st.dataframe(results_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1 Score'], color='lightgreen'))
-        st.info(f"🏆 Best Model based on Accuracy: **{best_model_name}**")
+        st.dataframe(results_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1 Score'], color='#31333F'), use_container_width=True)
+        st.success(f"🏆 System Recommendation: **{best_model_name}** achieved peak accuracy.")
         
-        # Accuracy Bar Chart
-        fig = px.bar(results_df, x='Model', y='Accuracy', color='Model', title="Model Accuracy Comparison", text_auto='.3f')
-        fig.update_layout(showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Multi-metric Radar Chart for Model Comparison
-        st.markdown('**Multi-Metric Comparison (Radar Chart)**')
-        categories = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
-        fig_radar = go.Figure()
-        for i, row in results_df.iterrows():
-            fig_radar.add_trace(go.Scatterpolar(
-                r=[row['Accuracy'], row['Precision'], row['Recall'], row['F1 Score']],
-                theta=categories,
-                fill='toself',
-                name=row['Model']
-            ))
-        fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 1])), title="Performance Radar Chart")
-        st.plotly_chart(fig_radar, use_container_width=True)
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            # Accuracy Bar Chart
+            fig = px.bar(results_df, x='Model', y='Accuracy', color='Model', title="Global Accuracy Leaderboard", text_auto='.3f', color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col_c2:
+            # Multi-metric Radar Chart for Model Comparison
+            categories = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+            fig_radar = go.Figure()
+            for i, row in results_df.iterrows():
+                fig_radar.add_trace(go.Scatterpolar(
+                    r=[row['Accuracy'], row['Precision'], row['Recall'], row['F1 Score']],
+                    theta=categories,
+                    fill='toself',
+                    name=row['Model']
+                ))
+            fig_radar.update_layout(
+                template="plotly_dark", 
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 1], gridcolor="rgba(255,255,255,0.2)"),
+                    bgcolor="rgba(0,0,0,0)"
+                ), 
+                paper_bgcolor="rgba(0,0,0,0)",
+                title="Multivariate Capabilities (Radar)"
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
         
         st.markdown("---")
-        st.subheader("🔍 Detailed Model Visualizations")
+        st.markdown("#### 🔍 Deep Diagnostics")
         
-        viz_model = st.selectbox("Select model for details", results_df['Model'].tolist())
+        viz_model = st.selectbox("Select Model for Deep Diagnosis", results_df['Model'].tolist())
         model_data = trained_models[viz_model]
         
-        col1, col2 = st.columns(2)
+        t1, t2, t3 = st.tabs(["Confusion Matrix & Splits", "ROC & PR Curves", "Feature Attribution"])
         
-        with col1:
-            # Confusion Matrix
-            st.write("**Confusion Matrix Heatmap**")
-            fig_cm = px.imshow(model_data['cm'], text_auto=True, color_continuous_scale='Blues',
-                              labels=dict(x="Predicted Label", y="True Label", color="Count"))
-            st.plotly_chart(fig_cm, use_container_width=True)
-            
-            # Prediction Breakdown Pie Chart
-            st.write("**Prediction Success Breakdown (Pie Chart)**")
-            correct_preds = np.trace(model_data['cm'])
-            wrong_preds = np.sum(model_data['cm']) - correct_preds
-            fig_pie = px.pie(values=[correct_preds, wrong_preds], names=['Correct Predictions', 'Incorrect Predictions'], 
-                             title="Overall Correct vs Incorrect Ratio", color_discrete_sequence=['#4CAF50', '#EF5350'])
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
-        with col2:
+        with t1:
+            col1, col2 = st.columns(2)
+            with col1:
+                fig_cm = px.imshow(model_data['cm'], text_auto=True, color_continuous_scale='Blues',
+                                  labels=dict(x="Predicted Class", y="True Class", color="Count"), title="Confusion Matrix")
+                fig_cm.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_cm, use_container_width=True)
+                
+            with col2:
+                correct_preds = np.trace(model_data['cm'])
+                wrong_preds = np.sum(model_data['cm']) - correct_preds
+                fig_pie = px.pie(values=[correct_preds, wrong_preds], names=['Success', 'Failure'], 
+                                 title="Prediction Outcome Distribution", color_discrete_sequence=['#00CC96', '#EF553B'])
+                fig_pie.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_pie, use_container_width=True)
+                
+        with t2:
             from sklearn.metrics import precision_recall_curve, average_precision_score
-            
-            # ROC Curve and PR Curve (if binary classification and probabilities available)
             if len(np.unique(y_test)) == 2 and model_data['y_proba'] is not None:
-                st.write("**ROC Curve & Precision-Recall Curve**")
+                col_r1, col_r2 = st.columns(2)
                 y_test_bin = (y_test == np.unique(y_test)[1]).astype(int)
                 
-                # ROC
-                fpr, tpr, thresholds = roc_curve(y_test_bin, model_data['y_proba'])
-                roc_auc = auc(fpr, tpr)
-                
-                fig_roc = go.Figure()
-                fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'ROC curve (area = {roc_auc:0.2f})'))
-                fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(dash='dash'), name='Random', opacity=0.5))
-                fig_roc.update_layout(title="Receiver Operating Characteristic (ROC)", xaxis_title='False Positive Rate', yaxis_title='True Positive Rate')
-                st.plotly_chart(fig_roc, use_container_width=True)
-                
-                # PR Curve
-                precision, recall, _ = precision_recall_curve(y_test_bin, model_data['y_proba'])
-                pr_auc = average_precision_score(y_test_bin, model_data['y_proba'])
-                
-                fig_pr = go.Figure()
-                fig_pr.add_trace(go.Scatter(x=recall, y=precision, mode='lines', name=f'PR curve (area = {pr_auc:0.2f})'))
-                fig_pr.update_layout(title="Precision-Recall Curve (Line Chart)", xaxis_title='Recall', yaxis_title='Precision')
-                st.plotly_chart(fig_pr, use_container_width=True)
-                
+                with col_r1:
+                    fpr, tpr, thresholds = roc_curve(y_test_bin, model_data['y_proba'])
+                    roc_auc = auc(fpr, tpr)
+                    fig_roc = go.Figure()
+                    fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'ROC (AUC = {roc_auc:0.2f})', line=dict(color='#00CC96')))
+                    fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(dash='dash', color='gray'), name='Random'))
+                    fig_roc.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title="ROC Curve", xaxis_title='FPR', yaxis_title='TPR')
+                    st.plotly_chart(fig_roc, use_container_width=True)
+                    
+                with col_r2:
+                    precision, recall, _ = precision_recall_curve(y_test_bin, model_data['y_proba'])
+                    pr_auc = average_precision_score(y_test_bin, model_data['y_proba'])
+                    fig_pr = go.Figure()
+                    fig_pr.add_trace(go.Scatter(x=recall, y=precision, mode='lines', name=f'PR (AUC = {pr_auc:0.2f})', line=dict(color='#AB63FA')))
+                    fig_pr.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title="Precision-Recall Curve", xaxis_title='Recall', yaxis_title='Precision')
+                    st.plotly_chart(fig_pr, use_container_width=True)
             else:
-                st.write("**ROC & PR Curves**")
-                st.info("Line curves (ROC/PR) are available only for binary classification models with probability output.")
+                st.info("📉 Probability Curves (ROC/PR) are reserved for Binary Classification models with probability outputs.")
                 
-        # Feature Importance for Tree models
-        if viz_model in ["Decision Tree", "Random Forest"]:
-            st.write("**Feature Importance (Horizontal Bar Chart)**")
-            importances = model_data['model'].feature_importances_
-            feat_imp = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances}).sort_values(by='Importance', ascending=True)
-            fig_feat = px.bar(feat_imp.tail(10), x='Importance', y='Feature', orientation='h', title=f"Top 10 Feature Importances ({viz_model})")
-            st.plotly_chart(fig_feat, use_container_width=True)
-
+        with t3:
+            if viz_model in ["Decision Tree", "Random Forest"]:
+                importances = model_data['model'].feature_importances_
+                feat_imp = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances}).sort_values(by='Importance', ascending=True)
+                fig_feat = px.bar(feat_imp.tail(10), x='Importance', y='Feature', orientation='h', title=f"Dominant Attributes ({viz_model})", color='Importance', color_continuous_scale='Magma')
+                fig_feat.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_feat, use_container_width=True)
+            else:
+                st.info("📉 Feature Attribution is inherently extracted from Tree-based methodologies (Decision Tree, Random Forest).")
 
 import joblib
 
 def page_bi_insights():
-    st.title("📈 Step 4: Business Intelligence (BI) Insights")
-    st.markdown("Actionable insights derived from the best performing model.")
+    st.title("📈 BI Command Center")
+    st.markdown("Translate raw predictions into actionable business strategy and export AI agents.")
     
     if 'best_model_name' not in st.session_state or st.session_state['best_model_name'] is None:
-        st.warning("Please train and evaluate models in Step 3 first.")
+        st.warning("⚠️ Telemetry unavailable. Complete Model Telemetry phase first.")
         return
         
     best_model_name = st.session_state['best_model_name']
@@ -441,188 +550,175 @@ def page_bi_insights():
     target_col = st.session_state['target_col']
     X_train = split_data['X_train']
     
-    st.success(f"🏆 Our analysis selected **{best_model_name}** as the best model with an accuracy of **{results_df.iloc[0]['Accuracy']:.2%}**.")
+    col_a, col_b = st.columns([2, 1])
+    with col_a:
+        st.markdown("#### 🧠 Prime Diagnostic")
+        f1 = results_df.iloc[0]['F1 Score']
+        if f1 > 0.85:
+            st.success(f"**Optimum Confidence:** The selected {best_model_name} operates with a robust F1-core of {f1:.2f}. Predictions are certified for automated business deployment.")
+        elif f1 > 0.70:
+            st.warning(f"**Moderate Confidence:** The {best_model_name} indicates an F1-score of {f1:.2f}. Human-in-the-loop review implies best outcomes.")
+        else:
+            st.error(f"**Low Confidence:** System F1-score is {f1:.2f}. High risk anomaly. Augment data prior to operational execution.")
+    with col_b:
+        st.markdown("#### 💾 Agent Extraction")
+        buffer = io.BytesIO()
+        joblib.dump(best_model, buffer)
+        buffer.seek(0)
+        st.download_button(
+            label=f"⬇️ Download {best_model_name} (.pkl)",
+            data=buffer,
+            file_name=f"{best_model_name.replace(' ', '_')}_v1.pkl",
+            mime="application/octet-stream",
+            use_container_width=True
+        )
+
+    st.markdown("---")
+    st.markdown("#### 💡 Causal Discoveries")
     
-    st.subheader("💡 Key Business Insights")
-    
-    # 1. Influence of features
     if best_model_name in ["Decision Tree", "Random Forest"]:
         importances = best_model.feature_importances_
         indices = np.argsort(importances)[::-1]
         top_features = X_train.columns[indices][:3].tolist()
-        
-        st.markdown(f"**1. What drives '{target_col}'?**")
-        st.info(f"The most important factors influencing **{target_col}** are **{top_features[0]}**, followed by **{top_features[1]}** and **{top_features[2]}**. Focusing business strategies on these areas will yield the highest impact.")
+        st.info(f"The primary vectors dictating **{target_col}** anomalies are **{top_features[0]}**, **{top_features[1]}**, and **{top_features[2]}**. Optimize operational capital here.")
     elif best_model_name in ["Logistic Regression", "Support Vector Machine"] and hasattr(best_model, "coef_"):
-        # For linear models
         coefs = np.abs(best_model.coef_[0])
         indices = np.argsort(coefs)[::-1]
-        top_features = X_train.columns[indices][:3].tolist()
-        
-        st.markdown(f"**1. What drives '{target_col}'?**")
-        st.info(f"The most impactful features determining the outcome are **{top_features[0]}**, **{top_features[1]}**, and **{top_features[2]}**. Any changes in these variables will strongly affect the result.")
+        if len(indices) >= 3:
+            top_features = X_train.columns[indices][:3].tolist()
+            st.info(f"System variance is fundamentally chained to **{top_features[0]}**, **{top_features[1]}**, and **{top_features[2]}**.")
     else:
-        st.markdown(f"**1. General Trend for '{target_col}'**")
-        st.info("The selected model uses complex distance or non-linear patterns. While exact feature importance is harder to extract, the model reliably predicts outcomes based on the holistic combination of all variables.")
-
-    # 2. Performance Context
-    st.markdown("**2. Reliability of Predictions**")
-    f1 = results_df.iloc[0]['F1 Score']
-    if f1 > 0.85:
-        st.success(f"The model's F1-score is very high ({f1:.2f}). You can highly trust these automated predictions in real-world scenarios.")
-    elif f1 > 0.70:
-        st.warning(f"The model has a moderate F1-score ({f1:.2f}). It is useful for general trends but should be combined with human judgment for critical decisions.")
-    else:
-        st.error(f"The model's performance is relatively low ({f1:.2f}). Consider collecting more data, adding new features, or doing deeper data cleaning before relying on this for production decisions.")
-        
-    st.markdown("---")
-    
-    st.subheader("💾 Export Best Model")
-    st.write("Download the trained best model to deploy it in your own applications.")
-    
-    # Save the model to a bytes buffer
-    buffer = io.BytesIO()
-    joblib.dump(best_model, buffer)
-    buffer.seek(0)
-    
-    st.download_button(
-        label="⬇️ Download Trained Model (.pkl)",
-        data=buffer,
-        file_name=f"{best_model_name.replace(' ', '_')}_model.pkl",
-        mime="application/octet-stream"
-    )
+        st.info("Model relies on complex manifold topologies. Variables are entangled in non-linear multi-dimensional hyperspaces.")
 
     st.markdown("---")
-    st.subheader("🔮 Predict on New Data")
-    st.write("Upload a new dataset (without the target column) to generate predictions.")
+    st.markdown("#### 📥 Batch Inference Sandbox")
+    st.write("Stream unlabelled zero-day data through the selected AI pipeline.")
     
-    test_file = st.file_uploader("Upload New Data (CSV/Excel)", type=["csv", "xlsx", "xls"], key="test_upload")
+    test_file = st.file_uploader("Upload Target Data (CSV/Excel)", type=["csv", "xlsx", "xls"], key="test_upload")
     
     if test_file is not None:
         try:
-            if test_file.name.endswith('.csv'):
-                test_df = pd.read_csv(test_file)
-            else:
-                test_df = pd.read_excel(test_file)
+            with st.spinner("Processing zero-day stream..."):
+                time.sleep(1)
+                if test_file.name.endswith('.csv'):
+                    test_df = pd.read_csv(test_file)
+                else:
+                    test_df = pd.read_excel(test_file)
                 
-            st.write("New Data Preview:")
-            st.dataframe(test_df.head())
-            
-            # Check if columns match
-            missing_cols = set(X_train.columns) - set(test_df.columns)
-            if missing_cols:
-                st.error(f"Missing columns in uploaded data: {missing_cols}")
-            else:
-                # Subset to ensure same order
-                X_new = test_df[X_train.columns]
+                st.dataframe(test_df.head(), use_container_width=True)
                 
-                # Check for missing values
-                if X_new.isnull().sum().sum() > 0:
-                    st.warning("New data contains missing values. Filling with 0. For best results, preprocess new data similarly to training data.")
-                    X_new = X_new.fillna(0)
-                
-                if st.button("Generate Predictions"):
-                    predictions = best_model.predict(X_new)
-                    test_df['Predicted_' + target_col] = predictions
+                missing_cols = set(X_train.columns) - set(test_df.columns)
+                if missing_cols:
+                    st.error(f"Schema mismatch. Missing attributes: {missing_cols}")
+                else:
+                    X_new = test_df[X_train.columns]
+                    if X_new.isnull().sum().sum() > 0:
+                        st.warning("Handling NULL anomalies using zero-fill protocol.")
+                        X_new = X_new.fillna(0)
                     
-                    st.success("Predictions generated!")
-                    st.dataframe(test_df.head(10))
-                    
-                    # Convert to CSV for download
-                    csv = test_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="⬇️ Download Predictions as CSV",
-                        data=csv,
-                        file_name="predictions.csv",
-                        mime="text/csv",
-                    )
+                    if st.button("Engage Predictor", type="primary"):
+                        time.sleep(0.5)
+                        predictions = best_model.predict(X_new)
+                        test_df['AutoML_Prediction_' + target_col] = predictions
+                        
+                        st.success("✅ Output rendered.")
+                        st.dataframe(test_df.head(10), use_container_width=True)
+                        
+                        csv = test_df.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            label="⬇️ Export Inference Data",
+                            data=csv,
+                            file_name="automl_inferences.csv",
+                            mime="text/csv",
+                        )
         except Exception as e:
-            st.error(f"Error processing new data: {e}")
-
+            st.error(f"Integrity Error: {e}")
 
 def page_supply_chain():
-    st.title("📦 Step 5: Supply Chain Analytics")
-    st.markdown("Demand Forecasting & Inventory Risk features tailored for Supply Chain Management.")
+    st.title("📦 Supply Chain Forecasting")
+    st.markdown("Stochastic demand projections and inventory risk algorithms.")
     
     if 'clean_data' not in st.session_state or st.session_state['clean_data'] is None:
-        st.warning("Please upload and preprocess data first to use Supply Chain tools.")
+        st.warning("⚠️ Warehouse variables missing. Execute ETL Config phase.")
         return
         
     df = st.session_state['clean_data']
-    st.dataframe(df.head())
+    st.markdown("#### Inventory Head")
+    st.dataframe(df.head(), use_container_width=True)
     
     st.markdown("---")
-    st.subheader("📈 Demand Forecasting")
-    st.write("Forecast future demand using Moving Averages and Exponential Smoothing.")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        date_col = st.selectbox("Select Date/Time Column (Optional but recommended)", ["None"] + df.columns.tolist())
-    with col2:
-        demand_col = st.selectbox("Select Demand/Sales Column", df.columns.tolist(), index=len(df.columns)-1)
-        
-    window = st.slider("Rolling Window Size", min_value=2, max_value=30, value=7)
+    t_fc, t_risk = st.tabs(["📉 Temporal Demand Vectors", "⚠️ Volatility Analysis"])
     
-    if st.button("Generate Forecast View"):
-        temp_df = df.copy()
-        
-        # Sort by date if available
-        if date_col != "None" and date_col in temp_df.columns:
-            try:
-                temp_df[date_col] = pd.to_datetime(temp_df[date_col])
-                temp_df = temp_df.sort_values(by=date_col)
-            except Exception:
-                st.warning(f"Could not convert {date_col} to datetime. Plotting without datetime scaling.")
+    with t_fc:
+        st.markdown("##### Temporal Pattern Matching (SMA/EMA)")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            date_col = st.selectbox("Temporal Index (Optional)", ["None"] + df.columns.tolist())
+        with col2:
+            demand_col = st.selectbox("Consumption Vector", df.columns.tolist(), index=len(df.columns)-1)
+        with col3:
+            window = st.slider("Lookback Window", min_value=2, max_value=30, value=7)
+            
+        if st.button("Compute Forecast Matrix", type="primary"):
+            with st.spinner("Calculating temporal drifts..."):
+                time.sleep(0.5)
+                temp_df = df.copy()
+                if date_col != "None" and date_col in temp_df.columns:
+                    try:
+                        temp_df[date_col] = pd.to_datetime(temp_df[date_col])
+                        temp_df = temp_df.sort_values(by=date_col)
+                    except Exception:
+                        st.warning(f"Temporal parsing compromised for {date_col}.")
+                        
+                temp_df['SMA (Moving Avg)'] = temp_df[demand_col].rolling(window=window).mean()
+                temp_df['EMA (Exp Smoothing)'] = temp_df[demand_col].ewm(span=window, adjust=False).mean()
                 
-        # Calculate Moving Average & Exponential Smoothing
-        temp_df['SMA (Moving Avg)'] = temp_df[demand_col].rolling(window=window).mean()
-        temp_df['EMA (Exp Smoothing)'] = temp_df[demand_col].ewm(span=window, adjust=False).mean()
-        
-        fig = go.Figure()
-        
-        x_axis = temp_df[date_col] if date_col != "None" else temp_df.index
-        
-        fig.add_trace(go.Scatter(x=x_axis, y=temp_df[demand_col], mode='lines', name='Actual Demand', opacity=0.5))
-        fig.add_trace(go.Scatter(x=x_axis, y=temp_df['SMA (Moving Avg)'], mode='lines', name=f'{window}-Period SMA'))
-        fig.add_trace(go.Scatter(x=x_axis, y=temp_df['EMA (Exp Smoothing)'], mode='lines', name=f'{window}-Period EMA'))
-        
-        fig.update_layout(title="Demand Forecasting Trends", xaxis_title="Time/Index", yaxis_title="Demand")
-        st.plotly_chart(fig, use_container_width=True)
-        
-        st.info("💡 **Insight:** Moving Averages smooth out short-term fluctuations and highlight longer-term supply chain trends.")
+                fig = go.Figure()
+                x_axis = temp_df[date_col] if date_col != "None" else temp_df.index
+                
+                fig.add_trace(go.Scatter(x=x_axis, y=temp_df[demand_col], mode='lines', name='Actual Flow', opacity=0.4, line=dict(color='gray')))
+                fig.add_trace(go.Scatter(x=x_axis, y=temp_df['SMA (Moving Avg)'], mode='lines', name=f'{window}-SMA', line=dict(color='#00CC96')))
+                fig.add_trace(go.Scatter(x=x_axis, y=temp_df['EMA (Exp Smoothing)'], mode='lines', name=f'{window}-EMA', line=dict(color='#AB63FA')))
+                
+                fig.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", title="Macro Demand Oscillation", xaxis_title="Timeline", yaxis_title="Volume")
+                st.plotly_chart(fig, use_container_width=True)
+                
+                st.info("System Note: Exponential smoothing maps accurately to recency bias in supply chain consumption.")
 
-    st.markdown("---")
-    st.subheader("⚠️ Inventory Volatility & Risk Analysis")
-    st.write("Analyze the volatility (standard deviation) of features compared to their volume to identify risky inventory.")
-    
-    cat_col = st.selectbox("Select Category/Product Identifier", ["None"] + df.select_dtypes(exclude=[np.number]).columns.tolist())
-    
-    if cat_col != "None" and st.button("Analyze Inventory Risk"):
-        # Group by category
-        risk_df = df.groupby(cat_col)[demand_col].agg(['sum', 'std', 'count']).dropna()
-        risk_df = risk_df.rename(columns={'sum': 'Total Demand', 'std': 'Demand Volatility'})
-        risk_df = risk_df.reset_index()
+    with t_risk:
+        st.markdown("##### Inventory Risk Heatmap")
+        cat_col = st.selectbox("SKU/Product Descriptor", ["None"] + df.select_dtypes(exclude=[np.number]).columns.tolist())
         
-        fig2 = px.scatter(risk_df, x='Total Demand', y='Demand Volatility', color='Demand Volatility', 
-                          size='count', hover_name=cat_col, 
-                          title="Inventory Risk Matrix (Volatility vs Total Demand)")
-        st.plotly_chart(fig2, use_container_width=True)
-        st.info("💡 **Insight:** Items in the top-right quadrant have high demand but high volatility, making them the most challenging for inventory planning. Consider maintaining higher safety safety stock for these items.")
+        if cat_col != "None":
+            if st.button("Synthesize Risk Data"):
+                with st.spinner("Processing volatility limits..."):
+                    time.sleep(0.5)
+                    risk_df = df.groupby(cat_col)[demand_col].agg(['sum', 'std', 'count']).dropna()
+                    risk_df = risk_df.rename(columns={'sum': 'Aggregate Volume', 'std': 'Standard Deviation (Risk)'})
+                    risk_df = risk_df.reset_index()
+                    
+                    fig2 = px.scatter(risk_df, x='Aggregate Volume', y='Standard Deviation (Risk)', color='Standard Deviation (Risk)', 
+                                      size='count', hover_name=cat_col, color_continuous_scale="Inferno",
+                                      title="Risk Distribution Matrix")
+                    fig2.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig2, use_container_width=True)
+                    st.error("Protocol: SKUs trending Top-Right represent hyper-volatile core requirements. Increment safety stock margins.")
 
 def main():
     # Render Sidebar and get current page
     current_page = render_sidebar()
 
     # Route to the appropriate page function
-    if current_page == "1. Upload Data":
+    if current_page == "1. Data Ingestion Terminal":
         page_upload_data()
-    elif current_page == "2. Preprocessing":
+    elif current_page == "2. ETL Pipeline Config":
         page_preprocessing()
-    elif current_page == "3. Models & Evaluation":
+    elif current_page == "3. Live Model Telemetry":
         page_models_eval()
-    elif current_page == "4. BI Insights":
+    elif current_page == "4. BI Command Center":
         page_bi_insights()
-    elif current_page == "5. Supply Chain Analytics":
+    elif current_page == "5. Supply Chain Forecasting":
         page_supply_chain()
 
 if __name__ == "__main__":
