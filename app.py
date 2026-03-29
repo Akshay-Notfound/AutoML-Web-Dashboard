@@ -332,23 +332,30 @@ def page_preprocessing():
                 
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
                 
+                # --- Auto-detect task type ---
+                if pd.api.types.is_float_dtype(y) or (pd.api.types.is_numeric_dtype(y) and y.nunique() >= 15):
+                    st.session_state['task_type'] = 'regression'
+                else:
+                    st.session_state['task_type'] = 'classification'
+                
                 st.session_state['split_data'] = {
                     'X_train': X_train, 'X_test': X_test,
                     'y_train': y_train, 'y_test': y_test
                 }
                 
-                st.success("✅ Partition established successfully.")
+                st.success(f"✅ Partition established successfully. System detected a **{st.session_state['task_type'].upper()}** task.")
                 st.info(f"**Training Elements:** {X_train.shape[0]:,} | **Holdout Elements:** {X_test.shape[0]:,}")
 
     st.session_state['clean_data'] = df
 
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.svm import SVC, SVR
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import plotly.express as px
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
@@ -368,13 +375,24 @@ def page_models_eval():
     
     st.info(f"**Data Streams Active** — **Training:** {X_train.shape[0]:,} records | **Holdout:** {X_test.shape[0]:,} records")
     
-    models = {
-        "Logistic Regression": LogisticRegression(max_iter=1000),
-        "Decision Tree": DecisionTreeClassifier(),
-        "Random Forest": RandomForestClassifier(),
-        "K-Nearest Neighbors": KNeighborsClassifier(),
-        "Support Vector Machine": SVC(probability=True)
-    }
+    task_type = st.session_state.get('task_type', 'classification')
+    
+    if task_type == 'classification':
+        models = {
+            "Logistic Regression": LogisticRegression(max_iter=1000),
+            "Decision Tree": DecisionTreeClassifier(),
+            "Random Forest": RandomForestClassifier(),
+            "K-Nearest Neighbors": KNeighborsClassifier(),
+            "Support Vector Machine": SVC(probability=True)
+        }
+    else:
+        models = {
+            "Linear Regression": LinearRegression(),
+            "Decision Tree Regressor": DecisionTreeRegressor(),
+            "Random Forest Regressor": RandomForestRegressor(),
+            "K-Nearest Regressor": KNeighborsRegressor(),
+            "Support Vector Regressor": SVR()
+        }
     
     st.markdown("#### 🎯 Model Selection Matrix")
     selected_models = []
@@ -405,31 +423,31 @@ def page_models_eval():
                     model = models[name]
                     model.fit(X_train, y_train)
                     y_pred = model.predict(X_test)
-                    y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
                     
-                    acc = accuracy_score(y_test, y_pred)
-                    prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-                    rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-                    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-                    cm = confusion_matrix(y_test, y_pred)
-                    
-                    results.append({
-                        "Model": name,
-                        "Accuracy": acc,
-                        "Precision": prec,
-                        "Recall": rec,
-                        "F1 Score": f1
-                    })
-                    
-                    trained_models_dict[name] = {
-                        'model': model,
-                        'y_pred': y_pred,
-                        'y_proba': y_proba,
-                        'cm': cm
-                    }
+                    if task_type == 'classification':
+                        y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
+                        acc = accuracy_score(y_test, y_pred)
+                        prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+                        rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+                        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+                        cm = confusion_matrix(y_test, y_pred)
+                        
+                        results.append({"Model": name, "Accuracy": acc, "Precision": prec, "Recall": rec, "F1 Score": f1})
+                        trained_models_dict[name] = {'model': model, 'y_pred': y_pred, 'y_proba': y_proba, 'cm': cm}
+                    else:
+                        r2 = r2_score(y_test, y_pred)
+                        mse = mean_squared_error(y_test, y_pred)
+                        rmse = np.sqrt(mse)
+                        mae = mean_absolute_error(y_test, y_pred)
+                        
+                        results.append({"Model": name, "R2 Score": r2, "MSE": mse, "RMSE": rmse, "MAE": mae})
+                        trained_models_dict[name] = {'model': model, 'y_pred': y_pred}
                 
                 # Save results in session state
-                results_df = pd.DataFrame(results).sort_values(by="Accuracy", ascending=False)
+                if task_type == 'classification':
+                    results_df = pd.DataFrame(results).sort_values(by="Accuracy", ascending=False)
+                else:
+                    results_df = pd.DataFrame(results).sort_values(by="R2 Score", ascending=False)
                 st.session_state['model_results_df'] = results_df
                 st.session_state['trained_models'] = trained_models_dict
                 
@@ -457,37 +475,51 @@ def page_models_eval():
         st.markdown("#### 📊 Performance Telemetry")
         
         # Display as a styled dataframe
-        st.dataframe(results_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1 Score'], color='#31333F'), use_container_width=True)
-        st.success(f"🏆 System Recommendation: **{best_model_name}** achieved peak accuracy.")
+        if task_type == 'classification':
+            st.dataframe(results_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1 Score'], color='#31333F'), use_container_width=True)
+            st.success(f"🏆 System Recommendation: **{best_model_name}** achieved peak accuracy.")
+        else:
+            st.dataframe(results_df.style.highlight_max(axis=0, subset=['R2 Score'], color='#31333F').highlight_min(axis=0, subset=['MSE', 'RMSE', 'MAE'], color='#31333F'), use_container_width=True)
+            st.success(f"🏆 System Recommendation: **{best_model_name}** achieved the best R² Score.")
         
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            # Accuracy Bar Chart
-            fig = px.bar(results_df, x='Model', y='Accuracy', color='Model', title="Global Accuracy Leaderboard", text_auto='.3f', color_discrete_sequence=px.colors.qualitative.Pastel)
+            if task_type == 'classification':
+                fig = px.bar(results_df, x='Model', y='Accuracy', color='Model', title="Global Accuracy Leaderboard", text_auto='.3f', color_discrete_sequence=px.colors.qualitative.Pastel)
+            else:
+                fig = px.bar(results_df, x='Model', y='R2 Score', color='Model', title="Global R² Leaderboard", text_auto='.3f', color_discrete_sequence=px.colors.qualitative.Pastel)
             fig.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
             
         with col_c2:
-            # Multi-metric Radar Chart for Model Comparison
-            categories = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
-            fig_radar = go.Figure()
-            for i, row in results_df.iterrows():
-                fig_radar.add_trace(go.Scatterpolar(
-                    r=[row['Accuracy'], row['Precision'], row['Recall'], row['F1 Score']],
-                    theta=categories,
-                    fill='toself',
-                    name=row['Model']
-                ))
-            fig_radar.update_layout(
-                template="plotly_dark", 
-                polar=dict(
-                    radialaxis=dict(visible=True, range=[0, 1], gridcolor="rgba(255,255,255,0.2)"),
-                    bgcolor="rgba(0,0,0,0)"
-                ), 
-                paper_bgcolor="rgba(0,0,0,0)",
-                title="Multivariate Capabilities (Radar)"
-            )
-            st.plotly_chart(fig_radar, use_container_width=True)
+            if task_type == 'classification':
+                # Multi-metric Radar Chart for Model Comparison
+                categories = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+                fig_radar = go.Figure()
+                for i, row in results_df.iterrows():
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=[row['Accuracy'], row['Precision'], row['Recall'], row['F1 Score']],
+                        theta=categories,
+                        fill='toself',
+                        name=row['Model']
+                    ))
+                fig_radar.update_layout(
+                    template="plotly_dark", 
+                    polar=dict(
+                        radialaxis=dict(visible=True, range=[0, 1], gridcolor="rgba(255,255,255,0.2)"),
+                        bgcolor="rgba(0,0,0,0)"
+                    ), 
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    title="Multivariate Capabilities (Radar)"
+                )
+                st.plotly_chart(fig_radar, use_container_width=True)
+            else:
+                # Comparative Scatter for Regression
+                fig_compare = go.Figure()
+                for i, row in results_df.iterrows():
+                    fig_compare.add_trace(go.Bar(name=row['Model'], x=['R2 Score', 'RMSE'], y=[row['R2 Score'], row['RMSE']]))
+                fig_compare.update_layout(template="plotly_dark", barmode='group', plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", title="Regression Error Comparison")
+                st.plotly_chart(fig_compare, use_container_width=True)
         
         st.markdown("---")
         st.markdown("#### 🔍 Deep Diagnostics")
@@ -495,15 +527,16 @@ def page_models_eval():
         viz_model = st.selectbox("Select Model for Deep Diagnosis", results_df['Model'].tolist())
         model_data = trained_models[viz_model]
         
-        t1, t2, t3 = st.tabs(["Confusion Matrix & Splits", "ROC & PR Curves", "Feature Attribution"])
-        
-        with t1:
-            col1, col2 = st.columns(2)
-            with col1:
-                fig_cm = px.imshow(model_data['cm'], text_auto=True, color_continuous_scale='Blues',
-                                  labels=dict(x="Predicted Class", y="True Class", color="Count"), title="Confusion Matrix")
-                fig_cm.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig_cm, use_container_width=True)
+        if task_type == 'classification':
+            t1, t2, t3 = st.tabs(["Confusion Matrix & Splits", "ROC & PR Curves", "Feature Attribution"])
+            
+            with t1:
+                col1, col2 = st.columns(2)
+                with col1:
+                    fig_cm = px.imshow(model_data['cm'], text_auto=True, color_continuous_scale='Blues',
+                                      labels=dict(x="Predicted Class", y="True Class", color="Count"), title="Confusion Matrix")
+                    fig_cm.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_cm, use_container_width=True)
                 
             with col2:
                 correct_preds = np.trace(model_data['cm'])
@@ -513,40 +546,66 @@ def page_models_eval():
                 fig_pie.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig_pie, use_container_width=True)
                 
-        with t2:
-            from sklearn.metrics import precision_recall_curve, average_precision_score
-            if len(np.unique(y_test)) == 2 and model_data['y_proba'] is not None:
-                col_r1, col_r2 = st.columns(2)
-                y_test_bin = (y_test == np.unique(y_test)[1]).astype(int)
-                
-                with col_r1:
-                    fpr, tpr, thresholds = roc_curve(y_test_bin, model_data['y_proba'])
-                    roc_auc = auc(fpr, tpr)
-                    fig_roc = go.Figure()
-                    fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'ROC (AUC = {roc_auc:0.2f})', line=dict(color='#00CC96')))
-                    fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(dash='dash', color='gray'), name='Random'))
-                    fig_roc.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title="ROC Curve", xaxis_title='FPR', yaxis_title='TPR')
-                    st.plotly_chart(fig_roc, use_container_width=True)
+            with t2:
+                from sklearn.metrics import precision_recall_curve, average_precision_score
+                if len(np.unique(y_test)) == 2 and model_data['y_proba'] is not None:
+                    col_r1, col_r2 = st.columns(2)
+                    y_test_bin = (y_test == np.unique(y_test)[1]).astype(int)
                     
-                with col_r2:
-                    precision, recall, _ = precision_recall_curve(y_test_bin, model_data['y_proba'])
-                    pr_auc = average_precision_score(y_test_bin, model_data['y_proba'])
-                    fig_pr = go.Figure()
-                    fig_pr.add_trace(go.Scatter(x=recall, y=precision, mode='lines', name=f'PR (AUC = {pr_auc:0.2f})', line=dict(color='#AB63FA')))
-                    fig_pr.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title="Precision-Recall Curve", xaxis_title='Recall', yaxis_title='Precision')
-                    st.plotly_chart(fig_pr, use_container_width=True)
-            else:
-                st.info("📉 Probability Curves (ROC/PR) are reserved for Binary Classification models with probability outputs.")
+                    with col_r1:
+                        fpr, tpr, thresholds = roc_curve(y_test_bin, model_data['y_proba'])
+                        roc_auc = auc(fpr, tpr)
+                        fig_roc = go.Figure()
+                        fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'ROC (AUC = {roc_auc:0.2f})', line=dict(color='#00CC96')))
+                        fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(dash='dash', color='gray'), name='Random'))
+                        fig_roc.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title="ROC Curve", xaxis_title='FPR', yaxis_title='TPR')
+                        st.plotly_chart(fig_roc, use_container_width=True)
+                        
+                    with col_r2:
+                        precision, recall, _ = precision_recall_curve(y_test_bin, model_data['y_proba'])
+                        pr_auc = average_precision_score(y_test_bin, model_data['y_proba'])
+                        fig_pr = go.Figure()
+                        fig_pr.add_trace(go.Scatter(x=recall, y=precision, mode='lines', name=f'PR (AUC = {pr_auc:0.2f})', line=dict(color='#AB63FA')))
+                        fig_pr.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title="Precision-Recall Curve", xaxis_title='Recall', yaxis_title='Precision')
+                        st.plotly_chart(fig_pr, use_container_width=True)
+                else:
+                    st.info("📉 Probability Curves (ROC/PR) are reserved for Binary Classification models with probability outputs.")
                 
-        with t3:
-            if viz_model in ["Decision Tree", "Random Forest"]:
-                importances = model_data['model'].feature_importances_
-                feat_imp = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances}).sort_values(by='Importance', ascending=True)
-                fig_feat = px.bar(feat_imp.tail(10), x='Importance', y='Feature', orientation='h', title=f"Dominant Attributes ({viz_model})", color='Importance', color_continuous_scale='Magma')
-                fig_feat.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig_feat, use_container_width=True)
-            else:
-                st.info("📉 Feature Attribution is inherently extracted from Tree-based methodologies (Decision Tree, Random Forest).")
+            with t3:
+                if viz_model in ["Decision Tree", "Random Forest"]:
+                    importances = model_data['model'].feature_importances_
+                    feat_imp = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances}).sort_values(by='Importance', ascending=True)
+                    fig_feat = px.bar(feat_imp.tail(10), x='Importance', y='Feature', orientation='h', title=f"Dominant Attributes ({viz_model})", color='Importance', color_continuous_scale='Magma')
+                    fig_feat.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_feat, use_container_width=True)
+                else:
+                    st.info("📉 Feature Attribution is inherently extracted from Tree-based methodologies (Decision Tree, Random Forest).")
+
+        elif task_type == 'regression':
+            t1, t2 = st.tabs(["Prediction vs Reality (Scatter)", "Feature Attribution"])
+            
+            with t1:
+                col1, col2 = st.columns(2)
+                with col1:
+                    fig_scatter = px.scatter(x=y_test, y=model_data['y_pred'], labels={'x': 'Actual Values', 'y': 'System Predictions'}, title="Prediction Mapping", color_discrete_sequence=['#00CC96'])
+                    fig_scatter.add_shape(type="line", line=dict(dash='dash'), x0=y_test.min(), y0=y_test.min(), x1=y_test.max(), y1=y_test.max())
+                    fig_scatter.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                with col2:
+                    residuals = y_test - model_data['y_pred']
+                    fig_resid = px.histogram(residuals, nbins=30, title="Residual Error Distribution", labels={'value': 'Error Distance (Actual - Predicted)'}, color_discrete_sequence=['#EF553B'])
+                    fig_resid.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_resid, use_container_width=True)
+            
+            with t2:
+                if viz_model in ["Decision Tree Regressor", "Random Forest Regressor"]:
+                    importances = model_data['model'].feature_importances_
+                    feat_imp = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances}).sort_values(by='Importance', ascending=True)
+                    fig_feat = px.bar(feat_imp.tail(10), x='Importance', y='Feature', orientation='h', title=f"Dominant Attributes ({viz_model})", color='Importance', color_continuous_scale='Magma')
+                    fig_feat.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_feat, use_container_width=True)
+                else:
+                    st.info("📉 Feature Attribution is inherently extracted from Tree-based methodologies (Decision Tree, Random Forest).")
 
 import joblib
 
@@ -568,13 +627,23 @@ def page_bi_insights():
     col_a, col_b = st.columns([2, 1])
     with col_a:
         st.markdown("#### 🧠 Prime Diagnostic")
-        f1 = results_df.iloc[0]['F1 Score']
-        if f1 > 0.85:
-            st.success(f"**Optimum Confidence:** The selected {best_model_name} operates with a robust F1-core of {f1:.2f}. Predictions are certified for automated business deployment.")
-        elif f1 > 0.70:
-            st.warning(f"**Moderate Confidence:** The {best_model_name} indicates an F1-score of {f1:.2f}. Human-in-the-loop review implies best outcomes.")
+        task_type = st.session_state.get('task_type', 'classification')
+        if task_type == 'classification':
+            f1 = results_df.iloc[0]['F1 Score']
+            if f1 > 0.85:
+                st.success(f"**Optimum Confidence:** The selected {best_model_name} operates with a robust F1-score of {f1:.2f}. Predictions are certified for automated business deployment.")
+            elif f1 > 0.70:
+                st.warning(f"**Moderate Confidence:** The {best_model_name} indicates an F1-score of {f1:.2f}. Human-in-the-loop review implies best outcomes.")
+            else:
+                st.error(f"**Low Confidence:** System F1-score is {f1:.2f}. High risk anomaly. Augment data prior to operational execution.")
         else:
-            st.error(f"**Low Confidence:** System F1-score is {f1:.2f}. High risk anomaly. Augment data prior to operational execution.")
+            r2 = results_df.iloc[0]['R2 Score']
+            if r2 > 0.80:
+                st.success(f"**Optimum Statistical Validation:** The selected {best_model_name} operates with a predictive R² value of {r2:.2f}. Forecasts are certified for automated business deployment.")
+            elif r2 > 0.60:
+                st.warning(f"**Moderate Statistical Validation:** The {best_model_name} indicates an R² value of {r2:.2f}. Human-in-the-loop review implies best outcomes.")
+            else:
+                st.error(f"**Low Statistical Validation:** System R² value is {r2:.2f}. High variance anomaly. Augment metrics prior to operational execution.")
     with col_b:
         st.markdown("#### 💾 Agent Extraction")
         buffer = io.BytesIO()
@@ -591,13 +660,13 @@ def page_bi_insights():
     st.markdown("---")
     st.markdown("#### 💡 Causal Discoveries")
     
-    if best_model_name in ["Decision Tree", "Random Forest"]:
+    if best_model_name in ["Decision Tree", "Random Forest", "Decision Tree Regressor", "Random Forest Regressor"]:
         importances = best_model.feature_importances_
         indices = np.argsort(importances)[::-1]
         top_features = X_train.columns[indices][:3].tolist()
         st.info(f"The primary vectors dictating **{target_col}** anomalies are **{top_features[0]}**, **{top_features[1]}**, and **{top_features[2]}**. Optimize operational capital here.")
-    elif best_model_name in ["Logistic Regression", "Support Vector Machine"] and hasattr(best_model, "coef_"):
-        coefs = np.abs(best_model.coef_[0])
+    elif best_model_name in ["Logistic Regression", "Support Vector Machine", "Linear Regression"] and hasattr(best_model, "coef_"):
+        coefs = np.abs(best_model.coef_[0]) if len(best_model.coef_.shape) > 1 else np.abs(best_model.coef_)
         indices = np.argsort(coefs)[::-1]
         if len(indices) >= 3:
             top_features = X_train.columns[indices][:3].tolist()
